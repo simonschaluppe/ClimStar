@@ -43,6 +43,14 @@ class Usage:
         return self.type.electricity_demand * self.area
 
 
+# --- Game Flow / Actions --- #
+class Action:
+    def __init__(self, name, cost=0):
+        self.name = name
+        self.cost = cost
+        self.effect = None
+
+
 class Building:
     vintage: int
     gross_floor_area: float
@@ -80,12 +88,21 @@ class Block:
         self.id = id
         self.position = position
         self.blocktype = blocktype
+        self.support = 0
 
     def get_demand(self, service: ServiceType):
         demand = 0
         for building in self.buildings:
             demand += building.get_demand(service)
         return demand
+
+    def increment_support(self, value):
+        self.support += value
+
+    def available_actions(self) -> list[Action]:
+        a = Action("Gain local support", 1)
+        a.execute = lambda: self.increment_support(1)
+        return [a]
 
     def __repr__(self):
         return f"{self.id} - {blocktype_names()[self.blocktype]}"
@@ -133,17 +150,6 @@ class City:
             s += "\n"
 
         return s
-
-
-# --- Game Flow / Actions --- #
-class Action:
-    def __init__(self, name, cost, required_meeples):
-        self.name = name
-        self.cost = cost
-        self.required_meeples = required_meeples
-
-    def execute(self, player):
-        player.resources["support"] += 1
 
 
 class Game:
