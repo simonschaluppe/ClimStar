@@ -1,24 +1,15 @@
-from functools import partial
-import pygame
-import pandas as pd
 import pygame as pg
-from constants import (
-    tile_size,
-    screen_width,
-    screen_height,
-    player_dark_shades,
-    player_light_shades,
-)
-
 import sys
+from functools import partial
 from pathlib import Path
 
 sys.path.append("../engine")
 
-from renderer import Renderer
-from text_engine import Engine, Scene, Option
-
+from engine import Engine, Scene, Option
 from gameworld import Block, Game, Action
+
+import config
+from util import create_tilemap
 
 # --- Load Cards Data --- #
 # cards_df = pd.read_excel("cards.xlsx", sheet_name="TECH")
@@ -31,6 +22,15 @@ class App:
     def __init__(self):
         self.engine = Engine()
         self.game = Game()
+
+        self.engine.renderer.camera.set_isometry_angle(30)
+        self.engine.renderer.camera.zoom(30)
+        self.engine.input_handler.bind_camera_zoom_to_mousewheel(
+            self.engine.renderer.camera
+        )
+        self.engine.input_handler.bind_camera_pan_to_mousedrag(
+            self.engine.renderer.camera, button=1
+        )
 
     def load_assets(self):
         # Load cards from dataframes
@@ -71,27 +71,32 @@ Support: {block.support}"""
                 self.execute_action, action, partial(self.start_block_scene, block)
             )
             scene.add_options(Option(action.name, cb))
-        scene.add_options(Option("Back", self.start_main_scene))
+        scene.add_options(Option("Back", self.show_main_scene))
         self.engine.switch_to(scene)
 
-    def start_main_scene(self):
-        main_scene = Scene(f"The city of {self.game.city.name}")
-        main_scene.text = str(self.game.city)
-        # this is where the game stats are arranged etc
+    def show_main_scene(self):
 
-        # then comes the logic
-        main_scene.add_options(Option("Quit Game", self.engine.quit))
-        block = self.game.city.blocks[(0, 0)]
-        main_scene.add_options(
-            Option(f"Goto Block {block.id}", partial(self.start_block_scene, block))
-        )
-        self.engine.switch_to(main_scene)
+        main_renderer = self.engine.renderer.render_tilemap
+        tilemap = create_tilemap(config.colors, self.game.city.blocks)
+        main_data = dict(tilemap=tilemap, grid=True)
+
+        self.engine.set_rendering_callback(main_renderer, main_data)
+        # add input handling for tile clicks:
+        # self.engine.input_handler.register_collidermasks()
+        # if mousepos collides with tilemask
+        # show_scene
+
+        ui_renderer = self.engine.renderer.draw_text
+        ui_data = dict(text=self.game.city.get_ui(), pos=(50, 50))
+        self.engine.add_rendering_callbacks((ui_renderer, ui_data))
+
+        #  c
 
     def start(self):
         # create starting scene
         self.game.create_city()
-        print(self.game.city)
-        scene = self.start_main_scene()
+
+        self.show_main_scene()
 
         self.engine.run()
 
@@ -103,4 +108,6 @@ Support: {block.support}"""
 # --- Main Execution ---
 if __name__ == "__main__":
     game = App()
+    game.engine.renderer.colors = config.colors
+    game.engine.renderer.debug = False
     game.start()
