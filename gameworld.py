@@ -66,7 +66,7 @@ class Building:
         return ed
 
 
-class BlockType:
+class DistrictType:
     NONE = "_"
     AGRICULTURE = "a"
     LOWRISE = "l"
@@ -76,15 +76,15 @@ class BlockType:
     PUBLIC = "P"
 
 
-def blocktype_names() -> dict[str:str]:
-    return {v: k for k, v in BlockType.__dict__.items() if "_" not in k}
+def district_type_names() -> dict[str:str]:
+    return {v: k for k, v in DistrictType.__dict__.items() if "_" not in k}
 
 
-class Block:
+class District:
     buildings: list[Building]
-    blocktype: BlockType
+    blocktype: DistrictType
 
-    def __init__(self, id, position, blocktype=BlockType.NONE):
+    def __init__(self, id, position, blocktype=DistrictType.NONE):
         self.id = id
         self.position = position
         self.blocktype = blocktype
@@ -104,29 +104,36 @@ class Block:
         a.execute = lambda: self.increment_support(1)
         return [a]
 
+    def get_type_name(self) -> str:
+        return district_type_names()[self.blocktype]
+
     def __repr__(self):
-        return f"{self.id} - {blocktype_names()[self.blocktype]}"
-
-
-class District:
-    demands: list[Demand]
-    supplies: list[Supply]
-    buildings: list[Building]
+        return f"{self.id} - {self.get_type_name()}"
 
 
 class City:
-    districts: list[District]
-    blocks: dict[tuple[int, int] : Block]
+    districts: dict[tuple[int, int] : District]
     name: str
 
     def __init__(self):
-        self.blocks = {}
+        self.districts = {}
         self.center = (0, 0)
+
+    def co2_emissions(self):
+        return 301.2
+
+    def get_ui(self):
+        return f"""{self.name}
+    
+    Emissions: {self.co2_emissions()}"""
+
+    def list_districts(self):
+        return [d for d in self.districts.values()]
 
     def bounds(self):
         xmin = xmax = self.center[0]
         ymin = ymax = self.center[1]
-        for pos in self.blocks.keys():
+        for pos in self.districts.keys():
             xmin = min(xmin, pos[0])
             xmax = max(xmax, pos[0])
             ymin = min(ymin, pos[1])
@@ -137,16 +144,19 @@ class City:
         xmin, xmax, ymin, ymax = self.bounds()
         return [[(x, y) for y in range(ymin, ymax)] for x in range(xmin, xmax)]
 
+    def get_tilemap(self) -> dict:
+        return self.districts
+
     def __str__(self):
         xmin, xmax, ymin, ymax = self.bounds()
         s = ""
         for y in range(ymax, ymin - 1, -1):
             for x in range(xmin, xmax + 1):
                 pos = (x, y)
-                if pos not in self.blocks:
+                if pos not in self.districts:
                     s += " _ "
                 else:
-                    s += f" {self.blocks[pos].blocktype} "
+                    s += f" {self.districts[pos].blocktype} "
             s += "\n"
 
         return s
@@ -176,16 +186,16 @@ class Game:
         for i, position in enumerate(
             self.get_grid_positions(10, start=self.city.center)
         ):
-            block = Block(
+            block = District(
                 id=i,
                 position=position,
-                blocktype=random.choice(list(blocktype_names().keys())),
+                blocktype=random.choice(list(district_type_names().keys())),
             )
-            self.city.blocks[position] = block
+            self.city.districts[position] = block
 
 
 if __name__ == "__main__":
     g = Game()
     g.create_city()
-    print(g.city.blocks)
+    print(g.city.districts)
     print(g.city)

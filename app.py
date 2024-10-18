@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append("../engine")
 
 from engine import Engine, Scene, Option
-from gameworld import Block, Game, Action
+from gameworld import District, Game, Action
 
 import config
 from util import create_tilemap
@@ -23,7 +23,8 @@ class App:
         self.engine = Engine()
         self.game = Game()
 
-        self.engine.renderer.camera.set_isometry_angle(30)
+        self.engine.renderer.camera.set_rotation(10)
+        self.engine.renderer.camera.set_isometry(0.3)
         self.engine.renderer.camera.zoom(30)
         self.engine.input_handler.bind_camera_zoom_to_mousewheel(
             self.engine.renderer.camera
@@ -60,37 +61,49 @@ class App:
         self.engine.show_dialog(scene)
         # self.engine.switch_to(scene)
 
-    def start_block_scene(self, block: Block):
-        scene = Scene(f"{block.id}")
-        scene.text = f"""Block {block}
-Location: {block.position}
-Support: {block.support}"""
+    def show_districts_screen(self, index: int = 0):
+        district_list = self.game.city.list_districts()
+        district = district_list[index]
+        scene = Scene(f"{district.id}")
+        scene.text = f"""Block {district}
+Location: {district.position}
+Support: {district.support}"""
 
-        for action in block.available_actions():
+        for action in district.available_actions():
             cb = partial(
-                self.execute_action, action, partial(self.start_block_scene, block)
+                self.execute_action, action, partial(self.show_districts_screen, index)
             )
             scene.add_options(Option(action.name, cb))
+        scene.add_options(
+            Option(
+                "Next district",
+                partial(self.show_districts_screen, (index + 1) % len(district_list)),
+            )
+        )
+        scene.add_options(
+            Option(
+                "Previous district",
+                partial(self.show_districts_screen, (index - 1) % len(district_list)),
+            )
+        )
         scene.add_options(Option("Back", self.show_main_scene))
-        self.engine.switch_to(scene)
+        self.engine.show_scene(scene)
 
     def show_main_scene(self):
 
-        main_renderer = self.engine.renderer.render_tilemap
-        tilemap = create_tilemap(config.colors, self.game.city.blocks)
+        tilemap = create_tilemap(config.colors, self.game.city.districts)
         main_data = dict(tilemap=tilemap, grid=True)
+        main_renderer = self.engine.renderer.render_tilemap
 
         self.engine.set_rendering_callback(main_renderer, main_data)
         # add input handling for tile clicks:
         # self.engine.input_handler.register_collidermasks()
-        # if mousepos collides with tilemask
-        # show_scene
 
         ui_renderer = self.engine.renderer.draw_text
         ui_data = dict(text=self.game.city.get_ui(), pos=(50, 50))
         self.engine.add_rendering_callbacks((ui_renderer, ui_data))
 
-        #  c
+        self.engine.input_handler.bind_keypress(pg.K_d, self.show_districts_screen)
 
     def start(self):
         # create starting scene
