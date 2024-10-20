@@ -3,9 +3,7 @@ import sys
 from functools import partial
 from pathlib import Path
 
-sys.path.append("../engine")
-
-from engine import Engine, Scene, Option
+from deengi import Engine, Scene, Option
 from gameworld import District, Game, Action
 
 import config
