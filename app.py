@@ -1,13 +1,9 @@
 import pygame as pg
-import sys
 from functools import partial
-from pathlib import Path
 
 from deengi import Engine, Scene, Option
-from gameworld import District, Game, Action
-
+from gameworld import Game
 import config
-from util import create_tilemap
 
 # --- Load Cards Data --- #
 # cards_df = pd.read_excel("cards.xlsx", sheet_name="TECH")
@@ -21,14 +17,10 @@ class App:
         self.engine = Engine()
         self.game = Game()
 
-        self.engine.renderer.camera.set_rotation(10)
-        self.engine.renderer.camera.set_isometry(0.3)
-        self.engine.renderer.camera.zoom(30)
-        self.engine.input_handler.bind_camera_zoom_to_mousewheel(
-            self.engine.renderer.camera
-        )
-        self.engine.input_handler.bind_camera_pan_to_mousedrag(
-            self.engine.renderer.camera, button=1
+        self.engine.setup_camera(
+            rotation=45,
+            isometry=0.3,
+            zoom=30,
         )
 
     def load_assets(self):
@@ -88,13 +80,10 @@ Support: {district.support}"""
         self.engine.show_scene(scene)
 
     def show_main_scene(self):
-
-        tilemap = create_tilemap(config.colors, self.game.city.districts)
-        main_data = dict(tilemap=tilemap, grid=True)
-        main_renderer = self.engine.renderer.render_tilemap
-
-        self.engine.set_rendering_callback(main_renderer, main_data)
-        # add input handling for tile clicks:
+        positions, sizes = self.game.city.get_tilemap_info()
+        colors = [config.colors[d.type_name] for d in self.game.city.list_districts()]
+        self.engine.create_tilemap(positions, sizes, colors)
+        self.engine.show_tilemap()
         # self.engine.input_handler.register_collidermasks()
 
         ui_renderer = self.engine.renderer.draw_text
@@ -110,10 +99,6 @@ Support: {district.support}"""
         self.show_main_scene()
 
         self.engine.run()
-
-    def quit(self):
-        pg.quit()
-        quit()
 
 
 # --- Main Execution ---
