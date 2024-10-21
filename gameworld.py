@@ -82,12 +82,13 @@ def district_type_names() -> dict[str:str]:
 
 class District:
     buildings: list[Building]
-    blocktype: DistrictType
+    type: DistrictType
 
-    def __init__(self, id, position, blocktype=DistrictType.NONE):
+    def __init__(self, id, position, district_type=DistrictType.NONE):
         self.id = id
         self.position = position
-        self.blocktype = blocktype
+        self.type = district_type
+        self.type_name = district_type_names()[self.type]
         self.support = 0
 
     def get_demand(self, service: ServiceType):
@@ -103,9 +104,6 @@ class District:
         a = Action("Gain local support", 1)
         a.execute = lambda: self.increment_support(1)
         return [a]
-
-    def get_type_name(self) -> str:
-        return district_type_names()[self.blocktype]
 
     def __repr__(self):
         return f"{self.id} - {self.get_type_name()}"
@@ -144,8 +142,10 @@ class City:
         xmin, xmax, ymin, ymax = self.bounds()
         return [[(x, y) for y in range(ymin, ymax)] for x in range(xmin, xmax)]
 
-    def get_tilemap(self) -> dict:
-        return self.districts
+    def get_tilemap_info(self):
+        positions = [d.position for d in self.list_districts()]
+        sizes = [(1, 1) for i in range(len(self.districts))]
+        return positions, sizes
 
     def __str__(self):
         xmin, xmax, ymin, ymax = self.bounds()
@@ -156,7 +156,7 @@ class City:
                 if pos not in self.districts:
                     s += " _ "
                 else:
-                    s += f" {self.districts[pos].blocktype} "
+                    s += f" {self.districts[pos].district_type} "
             s += "\n"
 
         return s
@@ -186,12 +186,12 @@ class Game:
         for i, position in enumerate(
             self.get_grid_positions(10, start=self.city.center)
         ):
-            block = District(
+            district = District(
                 id=i,
                 position=position,
-                blocktype=random.choice(list(district_type_names().keys())),
+                district_type=random.choice(list(district_type_names().keys())),
             )
-            self.city.districts[position] = block
+            self.city.districts[position] = district
 
 
 if __name__ == "__main__":
