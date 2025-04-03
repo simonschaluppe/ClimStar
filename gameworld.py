@@ -1,3 +1,4 @@
+from enum import Enum
 import math
 import random
 import string
@@ -66,7 +67,7 @@ class Building:
         return ed
 
 
-class DistrictType:
+class DistrictType(Enum):
     NONE = "_"
     AGRICULTURE = "a"
     LOWRISE = "l"
@@ -84,9 +85,9 @@ class District:
     buildings: list[Building]
     type: DistrictType
 
-    def __init__(self, id, position, district_type=DistrictType.NONE):
+    def __init__(self, id, pos, district_type=DistrictType.NONE):
         self.id = id
-        self.position = position
+        self.pos = pos
         self.type = district_type
         self.type_name = district_type_names()[self.type]
         self.support = 0
@@ -106,7 +107,7 @@ class District:
         return [a]
 
     def __repr__(self):
-        return f"{self.id} - {self.get_type_name()}"
+        return f"{self.id} - {self.type_name}"
 
 
 class City:
@@ -136,10 +137,10 @@ class City:
             xmax = max(xmax, pos[0])
             ymin = min(ymin, pos[1])
             ymax = max(ymax, pos[1])
-        return xmin, xmax, ymin, ymax
+        return (xmin, xmax), (ymin, ymax)
 
     def get_grid(self):
-        xmin, xmax, ymin, ymax = self.bounds()
+        (xmin, xmax), (ymin, ymax) = self.bounds()
         return [[(x, y) for y in range(ymin, ymax)] for x in range(xmin, xmax)]
 
     def get_tilemap_info(self):
@@ -188,7 +189,7 @@ class Game:
         ):
             district = District(
                 id=i,
-                position=position,
+                pos=position,
                 district_type=random.choice(list(district_type_names().keys())),
             )
             self.city.districts[position] = district

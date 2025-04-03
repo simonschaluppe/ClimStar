@@ -25,4 +25,5 @@ colors = {
     "INDUSTRY": (100, 50, 50),
     "PUBLIC": (150, 0, 200),
     "Grid": (0, 255, 0),
+    "background": (30, 30, 10),
 }
